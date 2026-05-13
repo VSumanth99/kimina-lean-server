@@ -189,11 +189,21 @@ async def run_checks(
                         "repl_uuid": uuid_hex,
                     },
                 )
+                response_summary = {
+                    "id": resp.id,
+                    "has_response": resp.response is not None,
+                    "response_keys": sorted(resp.response.keys())
+                    if isinstance(resp.response, dict)
+                    else None,
+                    "error": resp.error,
+                    "time": resp.time,
+                    "diagnostics": resp.diagnostics,
+                }
                 logger.info(
-                    "[{}] Response for [bold magenta]{}[/bold magenta] body →\n{}",
+                    "[{}] Response summary for [bold magenta]{}[/bold magenta] body →\n{}",
                     repl.uuid.hex[:8],
                     snippet.id,
-                    json.dumps(resp.model_dump(exclude_none=True), indent=2),
+                    json.dumps(response_summary, indent=2),
                 )
                 return resp
             except Exception as e:
@@ -201,11 +211,21 @@ async def run_checks(
                 await manager.destroy_repl(repl)
                 return ReplResponse(id=snippet.id, error=f"Snippet execution failed: {e}")
             else:
+                response_summary = {
+                    "id": resp.id,
+                    "has_response": resp.response is not None,
+                    "response_keys": sorted(resp.response.keys())
+                    if isinstance(resp.response, dict)
+                    else None,
+                    "error": resp.error,
+                    "time": resp.time,
+                    "diagnostics": resp.diagnostics,
+                }
                 logger.info(
-                    "[{}] Response for [bold magenta]{}[/bold magenta] body →\n{}",
+                    "[{}] Response summary for [bold magenta]{}[/bold magenta] body →\n{}",
                     repl.uuid.hex[:8],
                     snippet.id,
-                    json.dumps(resp.model_dump(exclude_none=True), indent=2),
+                    json.dumps(response_summary, indent=2),
                 )
                 await manager.release_repl(repl)
                 # TODO: Try catch everything DB related

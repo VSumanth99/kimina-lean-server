@@ -216,7 +216,9 @@ async def ast_from_code(
         rel = Path(*effective_module.split("."))
         out_dir = settings.ast_export_project_dir / ".lake/build/lib" / rel.parent
         out_dir.mkdir(parents=True, exist_ok=True)
-        # Run ast-export via lake in the ast_export project so Lake resolves deps
+        # Run ast-export via lake in the ast_export project so Lake resolves deps.
+        # Keep the semaphore held until the export process exits; limiting only
+        # subprocess creation still allows many expensive Lean jobs to run at once.
         async with manager.ast_semaphore:
             t0 = time.perf_counter()
             proc = await asyncio.create_subprocess_exec(
@@ -229,74 +231,75 @@ async def ast_from_code(
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
+                preexec_fn=os.setsid,
             )
-        try:
-            _stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=float(body.timeout)
-            )
-        except asyncio.TimeoutError:
-            logger.error(
-                "[AST] Timeout exporting code module {} after {}s, killing process",
-                body.module,
-                body.timeout,
-            )
-            await kill_process_safely(proc, use_process_group=True, logger_instance=logger)
-            return AstModuleResponse(
-                results=[
-                    AstModuleResult(
-                        module=effective_module,
-                        error=f"timed out after {body.timeout}s",
-                        time=round(time.perf_counter() - t0, 6),
-                    )
-                ]
-            )
+            try:
+                _stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    proc.communicate(), timeout=float(body.timeout)
+                )
+            except asyncio.TimeoutError:
+                logger.error(
+                    "[AST] Timeout exporting code module {} after {}s, killing process",
+                    body.module,
+                    body.timeout,
+                )
+                await kill_process_safely(proc, use_process_group=True, logger_instance=logger)
+                return AstModuleResponse(
+                    results=[
+                        AstModuleResult(
+                            module=effective_module,
+                            error=f"timed out after {body.timeout}s",
+                            time=round(time.perf_counter() - t0, 6),
+                        )
+                    ]
+                )
 
-        if proc.returncode != 0:
-            err = stderr_bytes.decode()
-            logger.error(
-                "[AST] Export from code failed for module {}: {}", effective_module, err
-            )
-            return AstModuleResponse(
-                results=[
-                    AstModuleResult(
-                        module=effective_module,
-                        error=(err or "ast-export failed"),
-                        time=round(time.perf_counter() - t0, 6),
-                    )
-                ]
-            )
+            if proc.returncode != 0:
+                err = stderr_bytes.decode()
+                logger.error(
+                    "[AST] Export from code failed for module {}: {}", effective_module, err
+                )
+                return AstModuleResponse(
+                    results=[
+                        AstModuleResult(
+                            module=effective_module,
+                            error=(err or "ast-export failed"),
+                            time=round(time.perf_counter() - t0, 6),
+                        )
+                    ]
+                )
 
-        try:
-            # Output is written under the ast_export project build dir when using lake
-            out_path = (
-                settings.ast_export_project_dir / ".lake/build/lib" / f"{rel}.out.json"
-            )
-            raw = out_path.read_text(encoding="utf-8")
-            data = json.loads(raw)
-            logger.info("[AST] Success for code module {}", effective_module)
-            return AstModuleResponse(
-                results=[
-                    AstModuleResult(
-                        module=effective_module,
-                        ast=data,
-                        time=round(time.perf_counter() - t0, 6),
-                        diagnostics={"ast_bytes": len(raw)},
-                    )
-                ]
-            )
-        except Exception as e:
-            logger.error(
-                "[AST] Failed to read AST for code module {}: {}", effective_module, e
-            )
-            return AstModuleResponse(
-                results=[
-                    AstModuleResult(
-                        module=effective_module,
-                        error=f"failed to read AST: {e}",
-                        time=round(time.perf_counter() - t0, 6),
-                    )
-                ]
-            )
+            try:
+                # Output is written under the ast_export project build dir when using lake
+                out_path = (
+                    settings.ast_export_project_dir / ".lake/build/lib" / f"{rel}.out.json"
+                )
+                raw = out_path.read_text(encoding="utf-8")
+                data = json.loads(raw)
+                logger.info("[AST] Success for code module {}", effective_module)
+                return AstModuleResponse(
+                    results=[
+                        AstModuleResult(
+                            module=effective_module,
+                            ast=data,
+                            time=round(time.perf_counter() - t0, 6),
+                            diagnostics={"ast_bytes": len(raw)},
+                        )
+                    ]
+                )
+            except Exception as e:
+                logger.error(
+                    "[AST] Failed to read AST for code module {}: {}", effective_module, e
+                )
+                return AstModuleResponse(
+                    results=[
+                        AstModuleResult(
+                            module=effective_module,
+                            error=f"failed to read AST: {e}",
+                            time=round(time.perf_counter() - t0, 6),
+                        )
+                    ]
+                )
     finally:
         # Best-effort cleanup
         try:

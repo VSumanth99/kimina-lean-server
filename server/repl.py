@@ -395,7 +395,7 @@ class Repl:
         # Read in chunks to avoid 64KB per-line limit
         # The REPL protocol uses blank lines (\n\n) as terminators
         chunk_size = 64 * 1024  # 64KB chunks
-        max_response_size = 10 * 1024 * 1024  # 10MB safety limit
+        max_response_size = 20 * 1024 * 1024  # 20MB hard limit
 
         try:
             while True:
@@ -420,11 +420,14 @@ class Repl:
 
                 # Safety check to prevent unbounded memory growth
                 if len(buffer) > max_response_size:
-                    logger.warning(
-                        f"[{self.uuid.hex[:8]}] Response buffer exceeded {max_response_size // (1024*1024)}MB, "
-                        "this may indicate an issue with the REPL response"
+                    logger.error(
+                        f"[{self.uuid.hex[:8]}] Response buffer exceeded {max_response_size // (1024*1024)}MB; "
+                        "killing REPL"
                     )
-                    # Continue reading but log a warning
+                    await self.kill_immediately()
+                    raise LeanError(
+                        f"REPL response exceeded {max_response_size // (1024*1024)}MB"
+                    )
         except asyncio.LimitOverrunError as e:
             # This shouldn't happen with chunked reading, but handle it gracefully
             logger.error(

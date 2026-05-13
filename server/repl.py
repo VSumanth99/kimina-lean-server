@@ -201,7 +201,7 @@ class Repl:
             "env",
             str(settings.repl_path),
             cwd=str(settings.project_dir),
-            env=os.environ,
+            env=dict(os.environ),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

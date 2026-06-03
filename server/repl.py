@@ -73,6 +73,7 @@ class Repl:
 
         # Stores the response received when running the import header.
         self.header_cmd_response: ReplResponse | None = None
+        self.header_env: int | None = None
 
         self.proc: Process | None = None
         self.error_file = tempfile.TemporaryFile("w+")
@@ -332,7 +333,7 @@ class Repl:
         input: Command = {"cmd": snippet.code}
 
         if self.use_count != 0 and not is_header:  # remove is_header
-            input["env"] = 0
+            input["env"] = self.header_env if self.header_env is not None else 0
             input["gc"] = True
 
         if infotree:

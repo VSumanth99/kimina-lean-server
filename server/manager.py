@@ -14,6 +14,24 @@ from .settings import settings
 from .utils import is_blank
 
 
+def _response_has_error(response: ReplResponse) -> bool:
+    """Return true when the REPL response contains Lean errors."""
+    if response.error:
+        return True
+    if not isinstance(response.response, dict):
+        return False
+    messages = response.response.get("messages", [])
+    return any(message.get("severity") == "error" for message in messages)
+
+
+def _response_env(response: ReplResponse) -> int | None:
+    """Return the environment id produced by a REPL response, when present."""
+    if not isinstance(response.response, dict):
+        return None
+    env = response.response.get("env")
+    return env if isinstance(env, int) else None
+
+
 class Manager:
     def __init__(
         self,
@@ -34,6 +52,7 @@ class Manager:
         self._cond = asyncio.Condition(self._lock)
         self._free: list[Repl] = []
         self._busy: set[Repl] = set()
+        self._header_prep_locks: dict[str, asyncio.Lock] = {}
 
         logger.info(
             "REPL manager initialized with: MAX_REPLS={}, MAX_REPL_USES={}, MAX_REPL_MEM={} MB",
@@ -222,27 +241,38 @@ class Manager:
             raise ReplError("Failed to start REPL") from e
 
         if not is_blank(repl.header):
-            try:
-                cmd_response = await repl.send_timeout(
-                    Snippet(id=f"{snippet_id}-header", code=repl.header),
-                    timeout=timeout,
-                    is_header=True,
-                )
-            except (asyncio.TimeoutError, TimeoutError) as e:
-                logger.error("Header command timed out")
-                raise e
-            except Exception as e:
-                logger.error("Failed to run header on REPL")
-                raise ReplError("Failed to run header on REPL") from e
-
-            if not debug:
-                cmd_response.diagnostics = None
-
-            if cmd_response.error:
-                logger.error(f"Header command failed: {cmd_response.error}")
-                await self.destroy_repl(repl)
-
-            repl.header_cmd_response = cmd_response
-
-            return cmd_response
+            header_lock = self._header_prep_locks.setdefault(repl.header, asyncio.Lock())
+            async with header_lock:
+                return await self._prep_header(repl, snippet_id, timeout, debug)
         return repl.header_cmd_response
+
+    async def _prep_header(
+        self, repl: Repl, snippet_id: str, timeout: float, debug: bool
+    ) -> ReplResponse:
+        """Run and validate a REPL import header before body execution."""
+
+        try:
+            cmd_response = await repl.send_timeout(
+                Snippet(id=f"{snippet_id}-header", code=repl.header),
+                timeout=timeout,
+                is_header=True,
+            )
+        except (asyncio.TimeoutError, TimeoutError) as e:
+            logger.error("Header command timed out")
+            raise e
+        except Exception as e:
+            logger.error("Failed to run header on REPL")
+            raise ReplError("Failed to run header on REPL") from e
+
+        if not debug:
+            cmd_response.diagnostics = None
+
+        if _response_has_error(cmd_response):
+            logger.error(f"Header command failed: {cmd_response}")
+            await self.destroy_repl(repl)
+            raise ReplError("Header command failed")
+
+        repl.header_cmd_response = cmd_response
+        repl.header_env = _response_env(cmd_response)
+
+        return cmd_response

@@ -33,6 +33,7 @@ async def run_checks(
 ) -> list[ReplResponse]:
     async def run_one(snippet: Snippet) -> ReplResponse:
         repl: Repl | None = None
+        header_timeout = max(timeout, manager.header_timeout)
         try:
             header, body = split_snippet(snippet.code)
             try:
@@ -50,7 +51,9 @@ async def run_checks(
                 if prep and prep.error:
                     return prep
             except (asyncio.TimeoutError, TimeoutError):
-                error = f"Lean REPL header command timed out in {timeout} seconds"
+                error = (
+                    f"Lean REPL header command timed out in {header_timeout} seconds"
+                )
                 uuid_hex = repl.uuid.hex
                 await manager.destroy_repl(repl)
                 if db.connected:
@@ -59,7 +62,7 @@ async def run_checks(
                             data={
                                 "id": snippet.id,
                                 "code": header,
-                                "time": timeout,
+                                "time": header_timeout,
                                 "error": error,
                                 "repl": {
                                     "connect": {"uuid": uuid_hex},
@@ -71,7 +74,7 @@ async def run_checks(
                 return ReplResponse(
                     id=snippet.id,
                     error=error,
-                    time=timeout,
+                    time=header_timeout,
                     diagnostics={
                         "repl_uuid": uuid_hex,
                     },
@@ -88,7 +91,7 @@ async def run_checks(
                         return prep
                 except (asyncio.TimeoutError, TimeoutError):
                     # Retry also timed out - return error response
-                    error = f"Lean REPL header command timed out in {timeout} seconds"
+                    error = f"Lean REPL header command timed out in {header_timeout} seconds"
                     uuid_hex = repl.uuid.hex
                     await manager.destroy_repl(repl)
                     if db.connected:
@@ -97,7 +100,7 @@ async def run_checks(
                                 data={
                                     "id": snippet.id,
                                     "code": header,
-                                    "time": timeout,
+                                    "time": header_timeout,
                                     "error": error,
                                     "repl": {
                                         "connect": {"uuid": uuid_hex},
@@ -109,7 +112,7 @@ async def run_checks(
                     return ReplResponse(
                         id=snippet.id,
                         error=error,
-                        time=timeout,
+                        time=header_timeout,
                         diagnostics={
                             "repl_uuid": uuid_hex,
                         },
@@ -117,7 +120,7 @@ async def run_checks(
                 except ReplError:
                     # Retry also failed with ReplError (likely timeout wrapped in ReplError)
                     # Return timeout error response since we're in a timeout test scenario
-                    error = f"Lean REPL header command timed out in {timeout} seconds"
+                    error = f"Lean REPL header command timed out in {header_timeout} seconds"
                     uuid_hex = repl.uuid.hex
                     await manager.destroy_repl(repl)
                     if db.connected:
@@ -126,7 +129,7 @@ async def run_checks(
                                 data={
                                     "id": snippet.id,
                                     "code": header,
-                                    "time": timeout,
+                                    "time": header_timeout,
                                     "error": error,
                                     "repl": {
                                         "connect": {"uuid": uuid_hex},
@@ -138,7 +141,7 @@ async def run_checks(
                     return ReplResponse(
                         id=snippet.id,
                         error=error,
-                        time=timeout,
+                        time=header_timeout,
                         diagnostics={
                             "repl_uuid": uuid_hex,
                         },
@@ -279,9 +282,13 @@ async def check(
     manager: Manager = Depends(get_manager),
     _: str = Depends(require_key),
 ) -> CheckResponse:
-    # Calculate a safety timeout: request timeout * number of snippets + buffer
-    # This provides a safety net in case inner timeouts fail
-    safety_timeout = float(request.timeout) * len(request.snippets) + 10.0
+    # Header imports have their own startup allowance because loading Mathlib
+    # from a cold filesystem cache can take much longer than checking a proof.
+    # Keep the outer safety net above both inner timeouts.
+    per_snippet_timeout = max(float(request.timeout), manager.header_timeout) + float(
+        request.timeout
+    )
+    safety_timeout = per_snippet_timeout * len(request.snippets) + 10.0
 
     async def run_with_safety_net() -> CheckResponse:
         task = asyncio.create_task(

@@ -188,6 +188,7 @@ Or from source with `pip install -e .`
 | `LEAN_SERVER_MAX_REPL_USES`           | `-1`          | Maximum number of uses per REPL (-1 is no limit)       |
 | `LEAN_SERVER_MAX_REPL_MEM`            | `8G`          | Maximum memory limit for each REPL (Linux-only)        |
 | `LEAN_SERVER_MAX_WAIT`                | `60`          | Maximum wait time to wait for a REPL (in seconds)      |
+| `LEAN_SERVER_HEADER_TIMEOUT`          | `300`         | Minimum timeout for loading an import header (in seconds) |
 | `LEAN_SERVER_INIT_REPLS`              | `{}`          | Map of header to REPL count to initialize with         |
 | `LEAN_SERVER_API_KEY`                 | `None`        | Optional API key for authentication                    |
 | `LEAN_SERVER_REPL_PATH`               | Auto-detected | Path to REPL binary (relative to workspace if not absolute) |
@@ -330,4 +331,3 @@ You are free to use, modify, and distribute this software with proper attributio
       url={https://arxiv.org/abs/2504.21230}, 
 }
 ```
-

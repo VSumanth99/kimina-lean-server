@@ -67,6 +67,7 @@ The server will start on `http://0.0.0.0:8000` by default.
 | `LEAN_SERVER_MAX_REPL_USES` | `-1` | Maximum number of uses per REPL (-1 is no limit) |
 | `LEAN_SERVER_MAX_REPL_MEM` | `8G` | Maximum memory limit for each REPL (Linux-only) |
 | `LEAN_SERVER_MAX_WAIT` | `3600` | Maximum wait time for a REPL (in seconds) |
+| `LEAN_SERVER_HEADER_TIMEOUT` | `300` | Minimum timeout for loading an import header (in seconds) |
 | `LEAN_SERVER_API_KEY` | `None` | Optional API key for authentication |
 | `LEAN_SERVER_DATABASE_URL` | `None` | URL for the database (if using one) |
 
@@ -199,4 +200,3 @@ MIT License - see [LICENSE](../LICENSE) file.
 - **Homepage**: https://github.com/project-numina/kimina-lean-server
 - **Issues**: https://github.com/project-numina/kimina-lean-server/issues
 - **Client SDK**: https://pypi.org/project/kimina-ast-client
-

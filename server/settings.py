@@ -90,6 +90,7 @@ class Settings(BaseSettings):
     max_repl_uses: int = -1
     max_repl_mem: int = 8
     max_wait: int = 3600
+    header_timeout: float = 300.0
     max_ast_jobs: int = max((os.cpu_count() or 1) - 1, 1)
 
     init_repls: dict[str, int] = {}

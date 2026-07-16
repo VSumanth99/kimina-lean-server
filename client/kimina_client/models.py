@@ -235,7 +235,9 @@ US = TypeVar("US", bound="CheckResponse")
 
 class BaseRequest(BaseModel):
     timeout: int = Field(
-        30, description="Maximum time in seconds before aborting the check", ge=0
+        30,
+        description="Maximum execution time in seconds for each snippet body",
+        ge=0,
     )
     debug: bool = Field(
         False, description="Include CPU/RAM usage and REPL instance ID in the response"

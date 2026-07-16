@@ -155,7 +155,13 @@ async def test_mathlib(client: TestClient) -> None:
 @pytest.mark.parametrize(
     "client",
     [
-        {"max_repls": 1, "max_repl_uses": 2, "init_repls": {}, "database_url": None},
+        {
+            "max_repls": 1,
+            "max_repl_uses": 2,
+            "header_timeout": 1,
+            "init_repls": {},
+            "database_url": None,
+        },
     ],
     indirect=True,
 )

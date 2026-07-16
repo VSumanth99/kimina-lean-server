@@ -20,7 +20,7 @@ def _response_has_error(response: ReplResponse) -> bool:
         return True
     if not isinstance(response.response, dict):
         return False
-    messages = response.response.get("messages", [])
+    messages = response.response.get("messages") or []
     return any(message.get("severity") == "error" for message in messages)
 
 
@@ -39,12 +39,14 @@ class Manager:
         max_repls: int = settings.max_repls,
         max_repl_uses: int = settings.max_repl_uses,
         max_repl_mem: int = settings.max_repl_mem,
+        header_timeout: float = settings.header_timeout,
         init_repls: dict[str, int] = settings.init_repls,
         max_ast_jobs: int = settings.max_ast_jobs,
     ) -> None:
         self.max_repls = max_repls
         self.max_repl_uses = max_repl_uses
         self.max_repl_mem = max_repl_mem
+        self.header_timeout = header_timeout
         self.init_repls = init_repls
         self.ast_semaphore = asyncio.Semaphore(max_ast_jobs)
 
@@ -52,13 +54,13 @@ class Manager:
         self._cond = asyncio.Condition(self._lock)
         self._free: list[Repl] = []
         self._busy: set[Repl] = set()
-        self._header_prep_locks: dict[str, asyncio.Lock] = {}
 
         logger.info(
-            "REPL manager initialized with: MAX_REPLS={}, MAX_REPL_USES={}, MAX_REPL_MEM={} MB",
+            "REPL manager initialized with: MAX_REPLS={}, MAX_REPL_USES={}, MAX_REPL_MEM={} MB, HEADER_TIMEOUT={}s",
             max_repls,
             max_repl_uses,
             max_repl_mem,
+            header_timeout,
         )
 
     async def initialize_repls(self) -> None:
@@ -241,9 +243,13 @@ class Manager:
             raise ReplError("Failed to start REPL") from e
 
         if not is_blank(repl.header):
-            header_lock = self._header_prep_locks.setdefault(repl.header, asyncio.Lock())
-            async with header_lock:
-                return await self._prep_header(repl, snippet_id, timeout, debug)
+            # Importing a large header such as Mathlib can be much slower with a
+            # cold filesystem cache than executing the snippet itself. Give
+            # headers a server-controlled startup allowance while preserving a
+            # larger caller-supplied timeout (used by initialize_repls).
+            return await self._prep_header(
+                repl, snippet_id, max(timeout, self.header_timeout), debug
+            )
         return repl.header_cmd_response
 
     async def _prep_header(

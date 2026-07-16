@@ -46,6 +46,7 @@ def create_app(settings: Settings) -> FastAPI:
             max_repls=settings.max_repls,
             max_repl_uses=settings.max_repl_uses,
             max_repl_mem=settings.max_repl_mem,
+            header_timeout=settings.header_timeout,
             init_repls=settings.init_repls,
         )
         app.state.manager = manager

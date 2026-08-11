@@ -1,0 +1,257 @@
+INFO     Started server process [689288]                        __init__.py:1762
+INFO     Waiting for application startup.                       __init__.py:1762
+INFO     Running Kimina Lean Server 'v2.1.3' in dev mode with Lean    main.py:31
+         version: 'v4.15.0'                                                     
+INFO     REPL manager initialized with: MAX_REPLS=32,              manager.py:58
+         MAX_REPL_USES=-1, MAX_REPL_MEM=8192 MB,                                
+         HEADER_TIMEOUT=300.0s                                                  
+INFO     Application startup complete.                          __init__.py:1762
+INFO     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C   __init__.py:1762
+         to quit)                                                               
+INFO     Try me with:                                                 main.py:58
+           curl --request POST \                                                
+             --url http://localhost:8000/api/check \                            
+             --header 'Content-Type: application/json' \                        
+             --data                                                             
+         '{"snippets":[{"id":"check-nat-test","code":"#check Nat"}]}'           
+         | jq                                                                   
+           curl --request POST \                                                
+             --url http://localhost:8000/api/ast \                              
+             --header 'Content-Type: application/json' \                        
+             --data '{\n    \"modules\": [\"Mathlib\"],\n    \"one\":           
+         true,\n    \"timeout\": 3600\n  }' | jq\n  curl --request              
+         POST \                                                                 
+             --url http://localhost:8000/api/ast_code \                         
+             --header 'Content-Type: application/json' \                        
+             --data '{\n    \"code\": \"import Mathlib\n#check                  
+         Nat\",\n    \"module\": \"User.Code\",\n    \"timeout\":               
+         3600\n  }' | jq\n                                                      
+INFO     → request                                                   main.py:140
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:38930 - "GET /health HTTP/1.1" 200           __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     # Free = 0 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     [c45c7065] Started                                          repl.py:222
+INFO     [c45c7065] Running snippet                                   repl.py:53
+         eaf06153bf2849ed833a871801d0249e-header:                               
+import Mathlib                                                                  
+INFO     [c45c7065] Running snippet eaf06153bf2849ed833a871801d0249e: repl.py:53
+theorem demo (x : ℤ) (h : x = 1) : x = 1 := by                                  
+  exact h                                                                       
+INFO      Response summary for eaf06153bf2849ed833a871801d0249e     check.py:227
+         body →                                                                 
+         {                                                                      
+           "id": "eaf06153bf2849ed833a871801d0249e",                            
+           "has_response": true,                                                
+           "response_keys": [                                                   
+             "env",                                                             
+             "infotree"                                                         
+           ],                                                                   
+           "error": null,                                                       
+           "time": 0.059,                                                       
+           "diagnostics": {                                                     
+             "repl_uuid": "c45c7065-b5c8-41e1-9d2b-f303c539590a",               
+             "cpu_max": 0.0,                                                    
+             "memory_max": 0.0                                                  
+           }                                                                    
+         }                                                                      
+INFO     [c45c7065] Released!                                     manager.py:192
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:38938 - "POST /api/check HTTP/1.1" 200       __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     # Free = 1 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     [c45c7065] Reusing (started) REPL for                    manager.py:116
+         0dd035427eef43c19be5bad930f49e84                                       
+INFO     [c45c7065] Running snippet health-check:                     repl.py:53
+#eval 1                                                                         
+INFO     [c45c7065] Running snippet 0dd035427eef43c19be5bad930f49e84: repl.py:53
+theorem demo (x : ℤ) (h : x = 1) : x = 1 := by                                  
+  have hbad : x = 2 := by omega                                                 
+  exact hbad                                                                    
+INFO      Response summary for 0dd035427eef43c19be5bad930f49e84     check.py:227
+         body →                                                                 
+         {                                                                      
+           "id": "0dd035427eef43c19be5bad930f49e84",                            
+           "has_response": true,                                                
+           "response_keys": [                                                   
+             "env",                                                             
+             "infotree",                                                        
+             "messages"                                                         
+           ],                                                                   
+           "error": null,                                                       
+           "time": 0.101,                                                       
+           "diagnostics": {                                                     
+             "repl_uuid": "c45c7065-b5c8-41e1-9d2b-f303c539590a",               
+             "cpu_max": 0.0,                                                    
+             "memory_max": 0.0                                                  
+           }                                                                    
+         }                                                                      
+INFO     [c45c7065] Released!                                     manager.py:192
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:35770 - "POST /api/check HTTP/1.1" 200       __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     # Free = 1 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     [c45c7065] Reusing (started) REPL for                    manager.py:116
+         217691c18f2e4ef0b9a29a860b6b2c0b                                       
+INFO     [c45c7065] Running snippet health-check:                     repl.py:53
+#eval 1                                                                         
+INFO     [c45c7065] Running snippet 217691c18f2e4ef0b9a29a860b6b2c0b: repl.py:53
+theorem demo (x : ℤ) (h : x = 1) : x = 1 := by                                  
+  have __refute_mutation : ¬ (x = 2) := by omega                                
+  exact h                                                                       
+INFO      Response summary for 217691c18f2e4ef0b9a29a860b6b2c0b     check.py:227
+         body →                                                                 
+         {                                                                      
+           "id": "217691c18f2e4ef0b9a29a860b6b2c0b",                            
+           "has_response": true,                                                
+           "response_keys": [                                                   
+             "env",                                                             
+             "infotree"                                                         
+           ],                                                                   
+           "error": null,                                                       
+           "time": 0.024,                                                       
+           "diagnostics": {                                                     
+             "repl_uuid": "c45c7065-b5c8-41e1-9d2b-f303c539590a",               
+             "cpu_max": 0.0,                                                    
+             "memory_max": 0.0                                                  
+           }                                                                    
+         }                                                                      
+INFO     [c45c7065] Released!                                     manager.py:192
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:40772 - "POST /api/check HTTP/1.1" 200       __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     # Free = 1 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     [c45c7065] Reusing (started) REPL for                    manager.py:116
+         4a2b9d28a4fd418b97921ce3cc294d60                                       
+INFO     [c45c7065] Running snippet health-check:                     repl.py:53
+#eval 1                                                                         
+INFO     [c45c7065] Running snippet 4a2b9d28a4fd418b97921ce3cc294d60: repl.py:53
+theorem demo (x : ℤ) (h : x = 1) : x = 1 := by                                  
+  have __refute_mutation : ¬ (x = 1) := by omega                                
+  exact h                                                                       
+INFO      Response summary for 4a2b9d28a4fd418b97921ce3cc294d60     check.py:227
+         body →                                                                 
+         {                                                                      
+           "id": "4a2b9d28a4fd418b97921ce3cc294d60",                            
+           "has_response": true,                                                
+           "response_keys": [                                                   
+             "env",                                                             
+             "infotree",                                                        
+             "messages"                                                         
+           ],                                                                   
+           "error": null,                                                       
+           "time": 0.011,                                                       
+           "diagnostics": {                                                     
+             "repl_uuid": "c45c7065-b5c8-41e1-9d2b-f303c539590a",               
+             "cpu_max": 0.0,                                                    
+             "memory_max": 0.0                                                  
+           }                                                                    
+         }                                                                      
+INFO     [c45c7065] Released!                                     manager.py:192
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:40784 - "POST /api/check HTTP/1.1" 200       __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     # Free = 1 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     [c45c7065] Reusing (started) REPL for                    manager.py:116
+         18e235eacca1493b84d4b90aeb94d270                                       
+INFO     [c45c7065] Running snippet health-check:                     repl.py:53
+#eval 1                                                                         
+INFO     [c45c7065] Running snippet 18e235eacca1493b84d4b90aeb94d270: repl.py:53
+theorem demo (x : ℤ) (h : x = 1) : x = 1 := by                                  
+  have hbad : x = 2 := by omega                                                 
+  exact hbad                                                                    
+INFO      Response summary for 18e235eacca1493b84d4b90aeb94d270     check.py:227
+         body →                                                                 
+         {                                                                      
+           "id": "18e235eacca1493b84d4b90aeb94d270",                            
+           "has_response": true,                                                
+           "response_keys": [                                                   
+             "env",                                                             
+             "infotree",                                                        
+             "messages"                                                         
+           ],                                                                   
+           "error": null,                                                       
+           "time": 0.017,                                                       
+           "diagnostics": {                                                     
+             "repl_uuid": "c45c7065-b5c8-41e1-9d2b-f303c539590a",               
+             "cpu_max": 0.0,                                                    
+             "memory_max": 0.0                                                  
+           }                                                                    
+         }                                                                      
+INFO     [c45c7065] Released!                                     manager.py:192
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:40788 - "POST /api/check HTTP/1.1" 200       __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     ← response                                                  main.py:142
+INFO     127.0.0.1:49992 - "GET /health HTTP/1.1" 200           __init__.py:1762
+INFO     → request                                                   main.py:140
+INFO     # Free = 1 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     [c45c7065] Reusing (started) REPL for                    manager.py:116
+         bb513ffc60ef40b597b1fb2b2fe5a9b9                                       
+INFO     [c45c7065] Running snippet health-check:                     repl.py:53
+#eval 1                                                                         
+WARNING   Health check failed: command timed out after 5.0s          repl.py:486
+WARNING   Reused REPL failed health check, marking for            manager.py:228
+         destruction                                                            
+WARNING  REPL prep failed (likely unresponsive REPL): REPL c45c7065  check.py:84
+         failed health check and is not responsive                              
+INFO     # Free = 0 | # Busy = 0 | # Max = 32                     manager.py:102
+INFO     Closing REPL c45c7065                                       repl.py:550
+INFO     [4e095231] Started                                          repl.py:222
+INFO     [4e095231] Running snippet                                   repl.py:53
+         bb513ffc60ef40b597b1fb2b2fe5a9b9-header:                               
+import Mathlib                                                                  
+INFO     Closed REPL c45c7065                                        repl.py:553
+INFO     → request                                                   main.py:140
+INFO     # Free = 0 | # Busy = 1 | # Max = 32                     manager.py:102
+INFO     [d17c82d1] Started                                          repl.py:222
+INFO     [d17c82d1] Running snippet                                   repl.py:53
+         0489c92303e34281bf9919d747d6b266-header:                               
+import Mathlib                                                                  
+INFO     → request                                                   main.py:140
+INFO     # Free = 0 | # Busy = 2 | # Max = 32                     manager.py:102
+INFO     [1309cbfe] Started                                          repl.py:222
+INFO     [1309cbfe] Running snippet                                   repl.py:53
+         e8bf1a1e90ad441abbb5976465136dca-header:                               
+import Mathlib                                                                  
+INFO     → request                                                   main.py:140
+INFO     # Free = 0 | # Busy = 3 | # Max = 32                     manager.py:102
+INFO     [3e467905] Started                                          repl.py:222
+INFO     [3e467905] Running snippet                                   repl.py:53
+         756928817ba841c8bfd3de5722a332e2-header:                               
+import Mathlib                                                                  
+INFO     → request                                                   main.py:140
+INFO     # Free = 0 | # Busy = 4 | # Max = 32                     manager.py:102
+INFO     [627383a8] Started                                          repl.py:222
+INFO     [627383a8] Running snippet                                   repl.py:53
+         8f70f452d2bc42b0b93be541cfa71663-header:                               
+import Mathlib                                                                  
+INFO     → request                                                   main.py:140
+INFO     # Free = 0 | # Busy = 5 | # Max = 32                     manager.py:102
+INFO     [ac00ff42] Started                                          repl.py:222
+INFO     [ac00ff42] Running snippet                                   repl.py:53
+         5f84fc1d95a04b26a3fdbb1f51eccc22-header:                               
+import Mathlib                                                                  
+ERROR    [4e095231] Lean REPL command timed out in 300.0 seconds,    repl.py:285
+         killing process immediately                                            
+WARNING  [4e095231] Killing REPL process immediately due to          repl.py:152
+         timeout/hang                                                           
+ERROR    Header command timed out                                 manager.py:267
+INFO     Closing REPL 4e095231                                       repl.py:550
+INFO     Closed REPL 4e095231                                        repl.py:553
+INFO     ← response                                                  main.py:142
+ERROR    [d17c82d1] Lean REPL command timed out in 300.0 seconds,    repl.py:285
+         killing process immediately                                            
+WARNING   Killing REPL process immediately due to timeout/hang       repl.py:152
+ERROR    Header command timed out                                 manager.py:267
+INFO     Closing REPL d17c82d1                                       repl.py:550
+INFO     Closed REPL d17c82d1                                        repl.py:553
+INFO     ← response                                                  main.py:142
+ERROR    [1309cbfe] Lean REPL command timed out in 300.0 seconds,    repl.py:285
+         killing process immediately                                            
+WARNING  [1309cbfe] Killing REPL process immediately due to          repl.py:152
+         timeout/hang                                                           
+ERROR    Header command timed out                                 manager.py:267
+INFO     Closing REPL 1309cbfe                                       repl.py:550
+INFO     Closed REPL 1309cbfe                                        repl.py:553
+INFO     ← response                                                  main.py:142

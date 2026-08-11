@@ -15,6 +15,7 @@ from .routers.ast import router as ast_router
 from .routers.backward import router as backward_router
 from .routers.check import router as check_router
 from .routers.health import router as health_router
+from .routers.proof_step import router as proof_step_router
 from .settings import Environment, Settings
 
 
@@ -124,6 +125,11 @@ def create_app(settings: Settings) -> FastAPI:
         ast_router,
         prefix="/api",
         tags=["ast"],
+    )
+    app.include_router(
+        proof_step_router,
+        prefix="/api",
+        tags=["proof-step"],
     )
     return app
 

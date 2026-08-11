@@ -14,6 +14,8 @@ from kimina_client import (
     Diagnostics,
     Error,
     Infotree,
+    ProofStep,
+    ProofStepResponse,
     ReplResponse,
     Snippet,
 )
@@ -269,6 +271,7 @@ class Repl:
         timeout: float,
         is_header: bool = False,
         infotree: Infotree | None = None,
+        all_tactics: bool = False,
     ) -> ReplResponse:
         cmd_response = None
         elapsed_time = (
@@ -278,7 +281,12 @@ class Repl:
 
         try:
             cmd_response, elapsed_time, diagnostics = await asyncio.wait_for(
-                self.send(snippet, is_header=is_header, infotree=infotree),
+                self.send(
+                    snippet,
+                    is_header=is_header,
+                    infotree=infotree,
+                    all_tactics=all_tactics,
+                ),
                 timeout=timeout,
             )
         except (asyncio.TimeoutError, TimeoutError):
@@ -309,6 +317,7 @@ class Repl:
         snippet: Snippet,
         is_header: bool = False,
         infotree: Infotree | None = None,
+        all_tactics: bool = False,
     ) -> tuple[CommandResponse | Error, float, Diagnostics]:
         await log_snippet(self.uuid, snippet.id, snippet.code)
 
@@ -323,8 +332,6 @@ class Repl:
             logger.error(f"[{self.uuid.hex[:8]}] REPL process not initialized")
             raise ReplError("REPL process not initialized")
 
-        loop = self._loop or asyncio.get_running_loop()
-
         if self.proc.stdin is None:
             raise ReplError("stdin pipe not initialized")
         if self.proc.stdout is None:
@@ -338,15 +345,48 @@ class Repl:
 
         if infotree:
             input["infotree"] = infotree
+        if all_tactics:
+            input["allTactics"] = True
 
+        return await self._send_input(input)  # pyright: ignore[reportReturnType]
+
+    async def run_proof_step(
+        self,
+        proof_step: ProofStep,
+    ) -> tuple[ProofStepResponse | Error, float, Diagnostics]:
+        """Run one tactic against a proof-state snapshot in this REPL."""
+
+        await log_snippet(
+            self.uuid,
+            f"proof-state-{proof_step['proofState']}",
+            proof_step["tactic"],
+        )
+        self._cpu_max = 0.0
+        self._mem_max = 0
+        if not self.is_running or self.proc is None:
+            raise ReplError("REPL process not running or has been killed")
+        if self.proc.stdin is None or self.proc.stdout is None:
+            raise ReplError("REPL process pipes are not initialized")
+        return await self._send_input(proof_step)  # pyright: ignore[reportReturnType]
+
+    async def _send_input(
+        self,
+        input: Command | ProofStep,
+    ) -> tuple[CommandResponse | ProofStepResponse | Error, float, Diagnostics]:
+        """Exchange one JSON instruction with the underlying Lean REPL."""
+
+        proc = self.proc
+        if proc is None or proc.stdin is None or proc.stdout is None:
+            raise ReplError("REPL process pipes are not initialized")
+        loop = self._loop or asyncio.get_running_loop()
         payload = (json.dumps(input, ensure_ascii=False) + "\n\n").encode("utf-8")
 
         start = loop.time()
         logger.debug("Sending payload to REPL")
 
         try:
-            self.proc.stdin.write(payload)
-            await self.proc.stdin.drain()
+            proc.stdin.write(payload)
+            await proc.stdin.drain()
         except BrokenPipeError:
             logger.error("Broken pipe while writing to REPL stdin")
             raise LeanError("Lean process broken pipe")
@@ -360,7 +400,7 @@ class Repl:
 
         logger.debug("Raw response from REPL: %r", raw)
         try:
-            resp: CommandResponse | Error = json.loads(raw)
+            resp: CommandResponse | ProofStepResponse | Error = json.loads(raw)
         except json.JSONDecodeError:
             logger.error("JSON decode error: %r", raw)
             raise ReplError("JSON decode error")

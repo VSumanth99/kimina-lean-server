@@ -22,6 +22,8 @@ from .models import (
     CheckRequest,
     CheckResponse,
     Infotree,
+    ProofStepCheckRequest,
+    ProofStepCheckResponse,
     ReplResponse,
     Snippet,
 )
@@ -128,6 +130,16 @@ class AsyncKiminaClient(BaseKimina):
                     ],
                 )
             raise e
+
+    async def check_proof_step(
+        self,
+        request: ProofStepCheckRequest,
+    ) -> ProofStepCheckResponse:
+        """Replay a source tactic and check a certificate in its post-state."""
+
+        url = self.build_url("/api/proof-step/check")
+        resp = await self._query(url, request.model_dump())
+        return self.handle(resp, ProofStepCheckResponse)
 
     async def _query(
         self, url: str, payload: dict[str, Any] | None = None, method: str = "POST"

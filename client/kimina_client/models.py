@@ -115,6 +115,7 @@ class Command(TypedDict):
     cmd: str
     env: NotRequired[int | None]
     infotree: NotRequired[Infotree]
+    allTactics: NotRequired[bool]
     gc: NotRequired[bool]
 
 
@@ -151,12 +152,20 @@ class ProofStep(TypedDict):
 
 
 class Tactic(TypedDict):
-    pos: int
-    endPos: int
+    pos: Pos
+    endPos: Pos
     goals: str
     tactic: str
     proofState: NotRequired[int | None]
     usedConstants: NotRequired[list[str]]
+
+
+class ProofStepResponse(TypedDict):
+    proofState: int
+    goals: list[str]
+    messages: NotRequired[list[Message] | None]
+    sorries: NotRequired[list[Sorry] | None]
+    traces: NotRequired[list[str]]
 
 
 class Diagnostics(TypedDict, total=False):
@@ -268,6 +277,39 @@ class ReplRequest(BaseRequest):
             },
         }
     )
+
+
+class ProofStepCheckRequest(BaseRequest):
+    """Replay one source tactic and check a certificate in its post-state."""
+
+    snippet: Snippet
+    line: int = Field(description="Lean source line inside the tactic", ge=1)
+    column: int = Field(description="Lean source column inside the tactic", ge=0)
+    before_goal: str = Field(description="Exact rendered goal before the tactic")
+    after_goal: str = Field(description="Exact rendered residual goal to certify")
+    certificate_tactic: str = Field(
+        description="Tactic that introduces a checked negation of the residual goal"
+    )
+
+
+class ProofStepCheckResponse(BaseModel):
+    """Result of replaying a tactic and checking a declaration in its post-state."""
+
+    id: str
+    accepted: bool
+    status: Literal[
+        "accepted",
+        "source_error",
+        "state_not_found",
+        "mutation_replay_error",
+        "residual_goal_mismatch",
+        "certificate_rejected",
+        "timeout",
+        "server_error",
+    ]
+    response: ProofStepResponse | None = None
+    error: str | None = None
+    time: float = 0.0
 
 
 class ReplResponse(BaseModel):

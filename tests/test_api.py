@@ -10,6 +10,7 @@ from kimina_client import (
     CommandResponse,
     Infotree,
     Message,
+    ProofStepCheckRequest,
     ReplResponse,
     Snippet,
 )
@@ -20,6 +21,57 @@ from server.repl import Repl
 from server.settings import settings
 
 from .utils import assert_json_equal
+
+
+@pytest.mark.parametrize(
+    "client",
+    [
+        {
+            "max_repls": 1,
+            "max_repl_uses": 10,
+            "init_repls": {},
+            "database_url": None,
+        },
+    ],
+    indirect=True,
+)
+def test_check_certificate_inside_replayed_proof_state(client: TestClient) -> None:
+    snippet = Snippet(
+        id="proof-step-certificate",
+        code=(
+            "example (P Q : Prop) (h : Q → P) (hnQ : Q → False) : P := by\n"
+            "  apply h"
+        ),
+    )
+    before_goal = "P Q : Prop\nh : Q → P\nhnQ : Q → False\n⊢ P"
+    after_goal = "P Q : Prop\nh : Q → P\nhnQ : Q → False\n⊢ Q"
+    payload = ProofStepCheckRequest(
+        snippet=snippet,
+        line=2,
+        column=2,
+        before_goal=before_goal,
+        after_goal=after_goal,
+        certificate_tactic=(
+            "have __certified_missing_condition : ¬ Q := by exact hnQ"
+        ),
+        timeout=30,
+    ).model_dump()
+
+    response = client.post("proof-step/check", json=payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["accepted"] is True, response.json()
+    assert response.json()["status"] == "accepted"
+    assert response.json()["response"]["goals"][0].endswith("⊢ Q")
+
+    payload["certificate_tactic"] = (
+        "have __certified_missing_condition : ¬ Q := by exact fun _ => True.intro"
+    )
+    rejected = client.post("proof-step/check", json=payload)
+
+    assert rejected.status_code == status.HTTP_200_OK
+    assert rejected.json()["accepted"] is False
+    assert rejected.json()["status"] == "certificate_rejected"
 
 
 @pytest.mark.asyncio

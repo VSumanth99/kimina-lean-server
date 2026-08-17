@@ -148,6 +148,60 @@ async def test_single_snippet(client: TestClient) -> None:
 @pytest.mark.parametrize(
     "client",
     [
+        {"init_repls": {}, "database_url": None},
+    ],
+    indirect=True,
+)
+async def test_tactic_sequences(client: TestClient) -> None:
+    payload = CheckRequest(
+        snippets=[
+            Snippet(
+                id="tactic-sequences",
+                code=(
+                    "theorem demo (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := by\n"
+                    "  constructor\n"
+                    "  · exact hp\n"
+                    "  · exact hq"
+                ),
+            ),
+            Snippet(
+                id="calc-blocks",
+                code=(
+                    "theorem calc_demo (a b c : Nat) (hab : a = b) "
+                    "(hbc : b = c) : a = c := by\n"
+                    "  calc\n"
+                    "    a = b := by exact hab\n"
+                    "    _ = c := by exact hbc"
+                ),
+            ),
+        ],
+        tactic_sequences=True,
+    ).model_dump()
+
+    response = client.post("check", json=payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    sequences = response.json()["results"][0]["response"]["tacticSequences"]
+    root_sequence = next(
+        sequence
+        for sequence in sequences
+        if sequence["name"] == "Lean.Parser.Term.byTactic"
+    )
+    assert [tactic["tactic"] for tactic in root_sequence["tactics"]] == [
+        "constructor",
+        "· exact hp",
+        "· exact hq",
+    ]
+    calc_blocks = response.json()["results"][1]["response"]["calcBlocks"]
+    assert len(calc_blocks) == 1
+    assert len(calc_blocks[0]["steps"]) == 2
+    assert calc_blocks[0]["ownerPos"] == calc_blocks[0]["pos"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "client",
+    [
         {
             "max_repls": 1,
             "max_repl_uses": 3,

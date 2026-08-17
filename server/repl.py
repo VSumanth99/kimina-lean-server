@@ -272,6 +272,7 @@ class Repl:
         is_header: bool = False,
         infotree: Infotree | None = None,
         all_tactics: bool = False,
+        tactic_sequences: bool = False,
     ) -> ReplResponse:
         cmd_response = None
         elapsed_time = (
@@ -286,6 +287,7 @@ class Repl:
                     is_header=is_header,
                     infotree=infotree,
                     all_tactics=all_tactics,
+                    tactic_sequences=tactic_sequences,
                 ),
                 timeout=timeout,
             )
@@ -318,6 +320,7 @@ class Repl:
         is_header: bool = False,
         infotree: Infotree | None = None,
         all_tactics: bool = False,
+        tactic_sequences: bool = False,
     ) -> tuple[CommandResponse | Error, float, Diagnostics]:
         await log_snippet(self.uuid, snippet.id, snippet.code)
 
@@ -347,6 +350,8 @@ class Repl:
             input["infotree"] = infotree
         if all_tactics:
             input["allTactics"] = True
+        if tactic_sequences:
+            input["tacticSequences"] = True
 
         return await self._send_input(input)  # pyright: ignore[reportReturnType]
 

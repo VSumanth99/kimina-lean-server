@@ -116,6 +116,7 @@ class Command(TypedDict):
     env: NotRequired[int | None]
     infotree: NotRequired[Infotree]
     allTactics: NotRequired[bool]
+    tacticSequences: NotRequired[bool]
     gc: NotRequired[bool]
 
 
@@ -160,6 +161,40 @@ class Tactic(TypedDict):
     usedConstants: NotRequired[list[str]]
 
 
+class TacticSequenceEntry(TypedDict):
+    name: NotRequired[str | None]
+    pos: Pos
+    endPos: Pos
+    goalsBefore: list[str]
+    goalsAfter: list[str]
+    tactic: str
+    mayFail: bool
+
+
+class TacticSequence(TypedDict):
+    name: str
+    synthetic: bool
+    pos: Pos
+    endPos: Pos
+    tactics: list[TacticSequenceEntry]
+
+
+class CalcStep(TypedDict):
+    pos: Pos
+    endPos: Pos
+    proofPos: NotRequired[Pos | None]
+    proofEndPos: NotRequired[Pos | None]
+
+
+class CalcBlock(TypedDict):
+    name: str
+    pos: Pos
+    endPos: Pos
+    ownerPos: NotRequired[Pos | None]
+    ownerEndPos: NotRequired[Pos | None]
+    steps: list[CalcStep]
+
+
 class ProofStepResponse(TypedDict):
     proofState: int
     goals: list[str]
@@ -182,6 +217,8 @@ class CommandResponse(TypedDict):
     messages: NotRequired[list[Message] | None]
     sorries: NotRequired[list[Sorry] | None]
     tactics: NotRequired[list[Tactic] | None]
+    tacticSequences: NotRequired[list[TacticSequence] | None]
+    calcBlocks: NotRequired[list[CalcBlock] | None]
     infotree: NotRequired[Any]
 
 
@@ -257,6 +294,10 @@ class BaseRequest(BaseModel):
     infotree: Infotree | None = Field(
         None,
         description="Level of detail for the info tree.",
+    )
+    tactic_sequences: bool = Field(
+        False,
+        description="Include source-level tactic sequences and their proof states.",
     )
 
 

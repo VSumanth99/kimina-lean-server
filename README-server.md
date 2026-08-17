@@ -145,7 +145,7 @@ If you prefer to set up the workspace manually:
 1. Install [Elan](https://github.com/leanprover/elan) and Lean 4
 2. Clone and build the required repositories:
    ```sh
-   git clone https://github.com/leanprover-community/repl.git
+   git clone --branch v4.15.0 --single-branch https://github.com/VSumanth99/repl.git
    cd repl && lake build
    
    git clone https://github.com/KellyJDavis/ast_export.git

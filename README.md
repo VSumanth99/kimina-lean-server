@@ -283,7 +283,7 @@ An additional hook runs basic tests on push.
 > Use `--no-verify` to skip hooks on commit / push (but the CI runs them).
 
 
-Install [Lean 4](https://github.com/leanprover/lean4), build the [repl](https://github.com/leanprover-community/repl), [ast](https://github.com/KellyJDavis/ast_export),
+Install [Lean 4](https://github.com/leanprover/lean4), build the [repl](https://github.com/VSumanth99/repl), [ast](https://github.com/KellyJDavis/ast_export),
 and [mathlib4](https://github.com/leanprover-community/mathlib4) libraries:
 ```sh
 bash setup.sh

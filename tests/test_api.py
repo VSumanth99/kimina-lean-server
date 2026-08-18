@@ -202,6 +202,60 @@ async def test_tactic_sequences(client: TestClient) -> None:
 @pytest.mark.parametrize(
     "client",
     [
+        {"init_repls": {}, "database_url": None},
+    ],
+    indirect=True,
+)
+async def test_automation_events_preserve_structured_lean_traces(
+    client: TestClient,
+) -> None:
+    payload = CheckRequest(
+        snippets=[
+            Snippet(
+                id="automation-events",
+                code=(
+                    "import Mathlib\n"
+                    "set_option trace.Meta.Tactic.simp.rewrite true\n"
+                    "set_option trace.Tactic.field_simp true\n"
+                    "set_option trace.Tactic.norm_cast true\n"
+                    "theorem demo (n : Nat) : n + 0 = n := by simp\n"
+                    "theorem field_demo (x : Rat) (h : x ≠ 0) : "
+                    "x / x = 1 := by field_simp\n"
+                    "theorem cast_demo (m n : Nat) (h : (m : Int) < n) : "
+                    "m < n := by exact_mod_cast h"
+                ),
+            ),
+        ],
+        automation_events=True,
+    ).model_dump()
+
+    response = client.post("check", json=payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    events = response.json()["results"][0]["response"]["automationEvents"]
+    assert [event["kind"] for event in events[:2]] == [
+        "Meta.Tactic.simp.rewrite",
+        "Meta.Tactic.simp.rewrite",
+    ]
+    assert events[0]["message"] == "add_zero:1000, n + 0 ==> n"
+    assert events[1]["message"] == "eq_self:1000, n = n ==> True"
+    assert any(
+        event["kind"] == "Tactic.field_simp"
+        and event["message"] == "✅️ discharge x ≠ 0"
+        for event in events
+    )
+    assert any(
+        event["kind"] == "Tactic.norm_cast" and event["children"]
+        for event in events
+    )
+    assert all(event["children"] == [] for event in events[:2])
+    assert all("[Meta.Tactic.simp.rewrite]" not in event["message"] for event in events)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "client",
+    [
         {
             "max_repls": 1,
             "max_repl_uses": 3,

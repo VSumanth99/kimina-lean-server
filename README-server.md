@@ -138,6 +138,11 @@ Once the server is running, you can access:
 - `POST /api/ast_code` - Get AST from raw code
 - `GET /health` - Health check endpoint
 
+Set `automation_events: true` on `/api/check` to include enabled Lean traces as
+structured `automationEvents`. Each event contains its trace `kind`, source
+range, prefix-free `message`, and nested `children`. The submitted Lean code
+must still enable the desired trace classes with `set_option trace.<class> true`.
+
 ## Manual Setup
 
 If you prefer to set up the workspace manually:

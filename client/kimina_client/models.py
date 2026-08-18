@@ -117,6 +117,7 @@ class Command(TypedDict):
     infotree: NotRequired[Infotree]
     allTactics: NotRequired[bool]
     tacticSequences: NotRequired[bool]
+    automationEvents: NotRequired[bool]
     gc: NotRequired[bool]
 
 
@@ -145,6 +146,16 @@ class Message(TypedDict):
     pos: Pos
     endPos: NotRequired[Pos | None]
     data: str
+
+
+class AutomationEvent(TypedDict):
+    """One structured node from Lean's automation trace tree."""
+
+    kind: str
+    pos: Pos
+    endPos: Pos | None
+    message: str
+    children: list["AutomationEvent"]
 
 
 class ProofStep(TypedDict):
@@ -215,6 +226,7 @@ class CommandResponse(TypedDict):
         int | None
     ]  # Have to make it not required now due to "gc" option already used on previous server
     messages: NotRequired[list[Message] | None]
+    automationEvents: NotRequired[list[AutomationEvent] | None]
     sorries: NotRequired[list[Sorry] | None]
     tactics: NotRequired[list[Tactic] | None]
     tacticSequences: NotRequired[list[TacticSequence] | None]
@@ -298,6 +310,10 @@ class BaseRequest(BaseModel):
     tactic_sequences: bool = Field(
         False,
         description="Include source-level tactic sequences and their proof states.",
+    )
+    automation_events: bool = Field(
+        False,
+        description="Include enabled Lean traces as structured automation events.",
     )
 
 

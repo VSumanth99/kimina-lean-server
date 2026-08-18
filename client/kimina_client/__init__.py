@@ -4,6 +4,7 @@ from typing import Any
 
 from .async_client import AsyncKiminaClient
 from .models import (
+    AutomationEvent,
     AstCodeRequest,
     AstModuleRequest,
     AstModuleResponse,
@@ -34,6 +35,7 @@ from .models import (
 from .sync_client import KiminaClient
 
 __all__ = [
+    "AutomationEvent",
     "AsyncKiminaClient",
     "AstCodeRequest",
     "AstModuleRequest",

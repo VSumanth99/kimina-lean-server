@@ -31,6 +31,7 @@ async def run_checks(
     reuse: bool,
     infotree: Infotree | None = None,
     tactic_sequences: bool = False,
+    automation_events: bool = False,
 ) -> list[ReplResponse]:
     async def run_one(snippet: Snippet) -> ReplResponse:
         repl: Repl | None = None
@@ -168,6 +169,7 @@ async def run_checks(
                     timeout,
                     infotree=infotree,
                     tactic_sequences=tactic_sequences,
+                    automation_events=automation_events,
                 )
             except (asyncio.TimeoutError, TimeoutError):
                 error = f"Lean REPL command timed out in {timeout} seconds"
@@ -304,6 +306,7 @@ async def check(
                 request.reuse,
                 request.infotree,
                 request.tactic_sequences,
+                request.automation_events,
             )
         )
 

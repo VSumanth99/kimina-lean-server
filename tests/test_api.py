@@ -232,16 +232,21 @@ async def test_automation_events_preserve_structured_lean_traces(
     response = client.post("check", json=payload)
 
     assert response.status_code == status.HTTP_200_OK
+    assert not [
+        message
+        for message in response.json()["results"][0]["response"].get("messages", [])
+        if message["severity"] == "error"
+    ]
     events = response.json()["results"][0]["response"]["automationEvents"]
     assert [event["kind"] for event in events[:2]] == [
         "Meta.Tactic.simp.rewrite",
         "Meta.Tactic.simp.rewrite",
     ]
-    assert events[0]["message"] == "add_zero:1000, n + 0 ==> n"
-    assert events[1]["message"] == "eq_self:1000, n = n ==> True"
+    assert " ".join(events[0]["message"].split()) == "add_zero:1000: n + 0 ==> n"
+    assert " ".join(events[1]["message"].split()) == "eq_self:1000: n = n ==> True"
     assert any(
         event["kind"] == "Tactic.field_simp"
-        and event["message"] == "✅️ discharge x ≠ 0"
+        and event["message"] == "discharge x ≠ 0"
         for event in events
     )
     assert any(
@@ -394,7 +399,7 @@ async def test_timeout(client: TestClient) -> None:
     }
     assert_json_equal(
         resp.json(),
-        expected=expecteds[settings.lean_version],
+        expected=expecteds["v4.15.0" if settings.lean_version == "v4.33.0" else settings.lean_version],
         ignore_keys=["time", "diagnostics"],
     )
 

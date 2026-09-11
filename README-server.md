@@ -2,6 +2,8 @@
 
 FastAPI server for checking Lean 4 code at scale via REPL and AST export.
 
+For the `lean-v4.33` branch, use the [pinned Lean 4.33 setup](docs/lean-v4.33.md).
+
 ## Installation
 
 Install from PyPI:

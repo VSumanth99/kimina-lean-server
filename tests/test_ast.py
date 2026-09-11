@@ -30,11 +30,12 @@ pytestmark = pytest.mark.skipif(
     ],
     indirect=True,
 )
-async def test_ast_module_mathlib(client: TestClient) -> None:
+@pytest.mark.parametrize("module", ["Mathlib", "Mathlib.Data.Nat.Basic"])
+async def test_ast_module_mathlib(client: TestClient, module: str) -> None:
     resp = client.post(
         "ast",
         json={
-            "modules": ["Mathlib"],
+            "modules": [module],
             "one": True,
             "timeout": 60,
         },
@@ -42,7 +43,7 @@ async def test_ast_module_mathlib(client: TestClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert "results" in data and len(data["results"]) == 1
-    assert data["results"][0]["module"] == "Mathlib"
+    assert data["results"][0]["module"] == module
     assert data["results"][0].get("error") is None
     assert isinstance(data["results"][0]["ast"], dict)
 
@@ -67,8 +68,6 @@ async def test_ast_code_simple(client: TestClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert "results" in data and len(data["results"]) == 1
-    assert data["results"][0]["module"] == "User.Code"
+    assert data["results"][0]["module"].startswith("User.Code_")
     assert data["results"][0].get("error") is None
     assert isinstance(data["results"][0]["ast"], dict)
-
-

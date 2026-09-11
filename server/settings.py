@@ -80,7 +80,7 @@ class Settings(BaseSettings):
 
     environment: Environment = Environment.dev
 
-    lean_version: str = "v4.15.0"
+    lean_version: str = "v4.33.0"
     repl_path: Path | None = None
     ast_export_bin: Path | None = None
     ast_export_project_dir: Path | None = None
@@ -88,7 +88,8 @@ class Settings(BaseSettings):
 
     max_repls: int = max((os.cpu_count() or 1) - 1, 1)
     max_repl_uses: int = -1
-    max_repl_mem: int = 8
+    # Lean 4.33 with Mathlib maps more than 8 GiB of virtual address space.
+    max_repl_mem: int = 16
     max_wait: int = 3600
     header_timeout: float = 300.0
     max_ast_jobs: int = max((os.cpu_count() or 1) - 1, 1)

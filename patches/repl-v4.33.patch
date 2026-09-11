@@ -1,0 +1,125 @@
+diff --git a/REPL/JSON.lean b/REPL/JSON.lean
+index 9be120c..aa19510 100644
+--- a/REPL/JSON.lean
++++ b/REPL/JSON.lean
+@@ -65,14 +65,20 @@ structure Message where
+ deriving ToJson, FromJson
+ 
+ /-- Construct the JSON representation of a Lean message. -/
+-def Message.of (m : Lean.Message) : IO Message := do pure <|
++def Message.of (m : Lean.Message) : IO Message := do
++  let data := (← m.data.toString).trimAscii.toString
++  -- Existing Kimina clients recognize this warning verbatim when rejecting sorry.
++  let data := if m.severity == .warning && data == "declaration uses `sorry`" then
++      "declaration uses 'sorry'"
++    else data
++  pure <|
+   { pos := ⟨m.pos.line, m.pos.column⟩,
+     endPos := m.endPos.map fun p => ⟨p.line, p.column⟩,
+     severity := match m.severity with
+     | .information => .info
+     | .warning => .warning
+     | .error => .error,
+-    data := (← m.data.toString).trim }
++    data }
+ 
+ /-- One structured event emitted by an enabled Lean automation trace. -/
+ structure AutomationEvent where
+@@ -119,17 +125,22 @@ where
+             stack := (namingContext, some ctx, data) :: stack
+         | .withNamingContext ctx data =>
+             stack := (ctx, messageContext, data) :: stack
+-        | .nest _ data | .group data | .tagged _ data | .ofWidget _ data =>
++        | .nest _ data | .group data | .tagged _ data | .ofWidget _ data
++          | .ofOriginatingSyntax _ data =>
+             stack := (namingContext, messageContext, data) :: stack
+         | .ofLazy render _ => do
+             let dynamic ← render (messageContext.map (MessageData.mkPPContext namingContext))
+             if let some data := dynamic.get? MessageData then
+               stack := (namingContext, messageContext, data) :: stack
+         | .trace traceData header children => do
+-            let message := (← MessageData.formatAux namingContext messageContext header).pretty.trim
+-            let childEvents ← traverse <|
+-              children.toList.map fun child => (namingContext, messageContext, child)
+-            events := { kind := traceData.cls, pos, endPos, message, children := childEvents } :: events
++            if traceData.cls.isAnonymous then
++              -- Lean 4.33 groups traces at a position in a synthetic root node.
++              stack := children.toList.map (fun child => (namingContext, messageContext, child)) ++ stack
++            else
++              let message := (← MessageData.formatAux namingContext messageContext header).pretty.trim
++              let childEvents ← traverse <|
++                children.toList.map fun child => (namingContext, messageContext, child)
++              events := { kind := traceData.cls, pos, endPos, message, children := childEvents } :: events
+         | .ofFormatWithInfos _ | .ofGoal _ =>
+             pure ()
+     pure events.reverse
+diff --git a/REPL/Lean/InfoTree.lean b/REPL/Lean/InfoTree.lean
+index cef1bd9..01b5a9d 100644
+--- a/REPL/Lean/InfoTree.lean
++++ b/REPL/Lean/InfoTree.lean
+@@ -63,8 +63,11 @@ def kind : Info → String
+   | .ofCustomInfo         _ => "CustomInfo"
+   | .ofFVarAliasInfo      _ => "FVarAliasInfo"
+   | .ofFieldRedeclInfo    _ => "FieldRedeclInfo"
+-  | .ofOmissionInfo       _ => "OmissionInfo"
+   | .ofChoiceInfo         _ => "ChoiceInfo"
++  | .ofDelabTermInfo      _ => "DelabTermInfo"
++  | .ofErrorNameInfo      _ => "ErrorNameInfo"
++  | .ofDocElabInfo        _ => "DocElabInfo"
++  | .ofDocInfo            _ => "DocInfo"
+ 
+ /-- The `Syntax` for a `Lean.Elab.Info`, if there is one. -/
+ def stx? : Info → Option Syntax
+@@ -80,8 +83,11 @@ def stx? : Info → Option Syntax
+   | .ofCustomInfo         info => info.stx
+   | .ofFVarAliasInfo      _    => none
+   | .ofFieldRedeclInfo    info => info.stx
+-  | .ofOmissionInfo       info => info.stx
+   | .ofChoiceInfo         info => info.stx
++  | .ofDelabTermInfo      info => info.stx
++  | .ofErrorNameInfo      info => info.stx
++  | .ofDocElabInfo        info => info.stx
++  | .ofDocInfo            info => info.stx
+ 
+ /-- Is the `Syntax` for this `Lean.Elab.Info` original, or synthetic? -/
+ def isOriginal (i : Info) : Bool :=
+diff --git a/REPL/Main.lean b/REPL/Main.lean
+index 47008bb..f266000 100644
+--- a/REPL/Main.lean
++++ b/REPL/Main.lean
+@@ -266,7 +266,6 @@ def runCommand (s : Command) : M IO (CommandResponse ⊕ Error) := do
+     cmdContext := (cmdSnapshot?.map fun c => c.cmdContext).getD
+       { fileName := "",
+         fileMap := default,
+-        tacticCache? := none,
+         snap? := none,
+         cancelTk? := none } }
+   let env ← recordCommandSnapshot cmdSnapshot
+@@ -376,13 +375,13 @@ where loop : M IO Unit := do
+     return ()
+   if query.startsWith "#" || query.startsWith "--" then loop else
+   IO.println <| toString <| ← match ← parse query with
+-  | .command r => return toJson (← runCommand r)
+-  | .file r => return toJson (← processFile r)
+-  | .proofStep r => return toJson (← runProofStep r)
+-  | .pickleEnvironment r => return toJson (← pickleCommandSnapshot r)
+-  | .unpickleEnvironment r => return toJson (← unpickleCommandSnapshot r)
+-  | .pickleProofSnapshot r => return toJson (← pickleProofSnapshot r)
+-  | .unpickleProofSnapshot r => return toJson (← unpickleProofSnapshot r)
++  | .command r => pure <| toJson (← runCommand r)
++  | .file r => pure <| toJson (← processFile r)
++  | .proofStep r => pure <| toJson (← runProofStep r)
++  | .pickleEnvironment r => pure <| toJson (← pickleCommandSnapshot r)
++  | .unpickleEnvironment r => pure <| toJson (← unpickleCommandSnapshot r)
++  | .pickleProofSnapshot r => pure <| toJson (← pickleProofSnapshot r)
++  | .unpickleProofSnapshot r => pure <| toJson (← unpickleProofSnapshot r)
+   printFlush "\n" -- easier to parse the output if there are blank lines
+   loop
+ 
+diff --git a/lean-toolchain b/lean-toolchain
+index d0eb99f..025e595 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.15.0
++leanprover/lean4:v4.33.0

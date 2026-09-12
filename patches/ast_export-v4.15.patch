@@ -1,0 +1,21 @@
+diff --git a/AstExport.lean b/AstExport.lean
+index 17893cb..221ce3d 100644
+--- a/AstExport.lean
++++ b/AstExport.lean
+@@ -51,6 +51,16 @@ partial def getASTForModule (srcSearchPath : SearchPath) (mainModuleName : Name)
+   let input ← IO.FS.readFile fileName
+   let inputCtx := Parser.mkInputContext input fileName.toString
+   let (header, parserState, messages) ← Parser.parseHeader inputCtx
++  -- parseHeader consumes leading comments without attaching them to syntax.
++  -- Keep that source information even when the file has no explicit imports.
++  let leadingEnv ← mkEmptyEnvironment
++  let leadingState := Parser.whitespace.run inputCtx { env := leadingEnv, options := {} }
++    (Parser.getTokenTable leadingEnv) (Parser.mkParserState input)
++  if leadingState.hasError then
++    throw <| .userError (leadingState.toErrorMsg inputCtx)
++  let leading : Substring := { str := input, startPos := 0, stopPos := leadingState.pos }
++  let trailing := Parser.mkEmptySubstringAt input parserState.pos
++  let header := header.setInfo (.original leading leadingState.pos trailing parserState.pos)
+   -- allow `env` to be leaked, which would live until the end of the process anyway
+   let opts := {}
+   let (env, messages) ← processHeader (leakEnv := true) header opts messages inputCtx

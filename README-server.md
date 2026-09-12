@@ -34,6 +34,17 @@ This will:
 - Clone and build the `ast_export` repository  
 - Clone and build `mathlib4` (this may take a while)
 
+For this checkout's Lean 4.15 profile, apply the bundled exporter fix once after
+setup, then rebuild it:
+
+```sh
+git -C ast_export apply ../patches/ast_export-v4.15.patch
+(cd ast_export && lake build)
+```
+
+The patch preserves leading comments in `header.info.leading`, including files
+without imports. It uses Lean's parser and keeps source offsets in UTF-8 bytes.
+
 ### 2. Start the server
 
 ```sh

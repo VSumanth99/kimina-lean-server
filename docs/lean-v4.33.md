@@ -16,7 +16,7 @@ server on port 8000. The checkout is `~/kimina-lean-server-v4.33`, branch
 The dependency source changes are stored in
 [`repl-v4.33.patch`](../patches/repl-v4.33.patch) and
 [`ast_export-v4.33.patch`](../patches/ast_export-v4.33.patch). The nested checkouts
-also use local `lean-v4.33` branches (`49e6808` for the REPL and `d877362` for
+also use local `lean-v4.33` branches (`49e6808` for the REPL and `98729aa` for
 the exporter). Mathlib's committed manifest pins its
 transitive dependencies; the exporter shares those same checkouts and artifacts.
 
@@ -85,6 +85,8 @@ For the informalization pipeline, set `kimina_url=http://127.0.0.1:8033`.
   that wording when rejecting incomplete proofs. Structured `sorries` remain present.
 - Recognized module headers and public/meta imports when preparing reusable REPLs.
 - Created output directories for nested module AST exports.
+- Preserved leading comments in `header.info.leading`, including files without
+  imports, using Lean's parser and UTF-8 byte offsets.
 
 ## Validation
 
@@ -106,7 +108,7 @@ the final theorem's axiom audit (`propext`, `Classical.choice`, `Quot.sound`).
 Erdős 106 exceeded a 120-second limit for both checking and AST export; it has not
 been validated under a longer timeout. No corpus-wide compatibility claim is made.
 
-The server suite passed **62 tests**, with two existing explicit skips and 103
+The server suite passed **70 tests**, with two existing explicit skips and 103
 performance/compatibility tests deselected by the default marker expression.
 Ruff and mypy passed. The full Pyright hook still reports existing errors in
 `server/prisma_client.py` and `server/routers/proof_step.py`; neither file was changed.

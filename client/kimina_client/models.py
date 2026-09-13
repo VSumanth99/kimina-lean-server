@@ -195,6 +195,8 @@ class CalcStep(TypedDict):
     endPos: Pos
     proofPos: NotRequired[Pos | None]
     proofEndPos: NotRequired[Pos | None]
+    # Lean's checked relation; omitted when this step has no elaborated proof.
+    target: NotRequired[str]
 
 
 class CalcBlock(TypedDict):

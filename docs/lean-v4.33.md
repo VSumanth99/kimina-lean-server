@@ -16,7 +16,7 @@ server on port 8000. The checkout is `~/kimina-lean-server-v4.33`, branch
 The dependency source changes are stored in
 [`repl-v4.33.patch`](../patches/repl-v4.33.patch) and
 [`ast_export-v4.33.patch`](../patches/ast_export-v4.33.patch). The nested checkouts
-also use local `lean-v4.33` branches (`49e6808` for the REPL and `98729aa` for
+also use local `lean-v4.33` branches (`c1a1a7a` for the REPL and `98729aa` for
 the exporter). Mathlib's committed manifest pins its
 transitive dependencies; the exporter shares those same checkouts and artifacts.
 
@@ -87,6 +87,8 @@ For the informalization pipeline, set `kimina_url=http://127.0.0.1:8033`.
 - Created output directories for nested module AST exports.
 - Preserved leading comments in `header.info.leading`, including files without
   imports, using Lean's parser and UTF-8 byte offsets.
+- Added each calc step's checked `target` to `calcBlocks`, so clients can read
+  resolved relations without requesting the full info tree.
 
 ## Validation
 

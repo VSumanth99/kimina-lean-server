@@ -140,6 +140,12 @@ Once the server is running, you can access:
 - `POST /api/ast_code` - Get AST from raw code
 - `GET /health` - Health check endpoint
 
+Set `tactic_sequences: true` on `/api/check` to return `tacticSequences` and
+`calcBlocks`. Each proved calc step includes a `target` containing Lean's checked
+relation, with omitted operands resolved. This works without requesting an
+`infotree`; bare opening expressions and proofs Lean did not elaborate omit
+`target`. Existing Lean workspaces must update and rebuild the REPL to expose it.
+
 Set `automation_events: true` on `/api/check` to include enabled Lean traces as
 structured `automationEvents`. Each event contains its trace `kind`, source
 range, prefix-free `message`, and nested `children`. The submitted Lean code

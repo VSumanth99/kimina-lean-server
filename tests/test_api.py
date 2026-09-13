@@ -174,6 +174,27 @@ async def test_tactic_sequences(client: TestClient) -> None:
                     "    _ = c := by exact hbc"
                 ),
             ),
+            Snippet(
+                id="calc-term-targets",
+                code=(
+                    "import Mathlib\n"
+                    "theorem calc_terms (a b c : Nat) (hab : a ∣ b) "
+                    "(hbc : b ∣ c) : a ∣ c := by\n"
+                    "  calc a\n"
+                    "    _ ∣ b := hab\n"
+                    "    _ ∣ _ := hbc"
+                ),
+            ),
+            Snippet(
+                id="calc-term-mode",
+                code=(
+                    "theorem calc_term_mode (a b c : Nat) (hab : a = b) "
+                    "(hbc : b = c) : a = c :=\n"
+                    "  calc a\n"
+                    "    _ = b := (hab)\n"
+                    "    _ = _ := show b = c from hbc"
+                ),
+            ),
         ],
         tactic_sequences=True,
     ).model_dump()
@@ -196,6 +217,19 @@ async def test_tactic_sequences(client: TestClient) -> None:
     assert len(calc_blocks) == 1
     assert len(calc_blocks[0]["steps"]) == 2
     assert calc_blocks[0]["ownerPos"] == calc_blocks[0]["pos"]
+    assert [step["target"] for step in calc_blocks[0]["steps"]] == ["a = b", "b = c"]
+    # Bare expressions have no explicit proof. Every proved relation comes from
+    # Lean, including relations other than equality and both omitted operands.
+    for index, targets in [(2, ["a ∣ b", "b ∣ c"]), (3, ["a = b", "b = c"])]:
+        checked = response.json()["results"][index]["response"]
+        assert not [m for m in checked.get("messages", []) if m["severity"] == "error"]
+        steps = checked["calcBlocks"][0]["steps"]
+        assert steps[0].get("target") is None
+        assert [step["target"] for step in steps[1:]] == targets
+    assert all(
+        result["response"].get("infotree") is None
+        for result in response.json()["results"]
+    )
 
 
 @pytest.mark.asyncio

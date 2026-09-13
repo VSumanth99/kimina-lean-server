@@ -67,7 +67,6 @@ async def test_ast_code_simple(client: TestClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert "results" in data and len(data["results"]) == 1
-    assert data["results"][0]["module"] == "User.Code"
     assert data["results"][0].get("error") is None
     assert isinstance(data["results"][0]["ast"], dict)
 

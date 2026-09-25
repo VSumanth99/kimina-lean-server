@@ -32,16 +32,14 @@ example (P : Prop) (hp : P) : P := by
     assert locals_by_name["«h:colon»"]["type"] == "P"
     assert locals_by_name["hp"].get("value") is None
     assert locals_by_name["n"]["value"] == "37"
-    assert "37" not in skip["goalsBefore"][0]
+    assert "goalsBefore" not in skip and "goalsAfter" not in skip
     # The final context must not leak backwards into earlier saved states.
     first = next(entry for entry in entries if entry["tactic"].startswith("have «two words»"))
     before = first["goalStatesBefore"][0]["locals"]
     assert [local["name"] for local in before] == ["P", "hp"]
     assert before[1]["id"] == locals_by_name["hp"]["id"]
-    # Legacy text remains available for existing clients.
-    assert "⊢ P" in skip["goalsBefore"][0]
     final = next(entry for entry in entries if entry["tactic"] == "exact «two words»")
-    assert final["goalsAfter"] == final["goalStatesAfter"] == []
+    assert final["goalStatesAfter"] == []
 
 
 @pytest.mark.parametrize("client", [{"database_url": None}], indirect=True)

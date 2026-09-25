@@ -33,15 +33,16 @@ def test_rewrite_rules_export_checked_intermediate_states(client: TestClient, ta
     for i, rule in enumerate(rules):
         line = source.splitlines()[rule["pos"]["line"]]  # one import line is removed
         assert line[rule["pos"]["column"]:rule["endPos"]["column"]] == rule["tactic"]
-        assert rule["goalsBefore"] != rule["goalsAfter"]
+        assert rule["goalStatesBefore"] != rule["goalStatesAfter"]
         if i:
-            assert rules[i - 1]["goalsAfter"] == rule["goalsBefore"]
+            assert rules[i - 1]["goalStatesAfter"] == rule["goalStatesBefore"]
     if at_hypothesis:
-        assert "h : d + 1 = 10" in rules[-1]["goalsAfter"][0]
+        assert any(local["name"] == "h" and local["type"] == "d + 1 = 10"
+                   for local in rules[-1]["goalStatesAfter"][0]["locals"])
     elif tactic == "simp_rw":
-        assert rules[-1]["goalsAfter"] == []
+        assert rules[-1]["goalStatesAfter"] == []
     else:
-        assert rules[-1]["goalsAfter"][0].endswith("⊢ d + 1 = d + 1")
+        assert rules[-1]["goalStatesAfter"][0]["target"] == "d + 1 = d + 1"
 
 
 @pytest.mark.parametrize("client", [{"database_url": None}], indirect=True)
@@ -117,7 +118,7 @@ def test_module_header_and_tactic_sequences(client: TestClient) -> None:
     assert not [m for m in output.get("messages", []) if m["severity"] == "error"]
     assert not output.get("sorries")
     assert any(
-        tactic["tactic"] == "simp" and tactic["goalsAfter"] == []
+        tactic["tactic"] == "simp" and tactic["goalStatesAfter"] == []
         for sequence in output["tacticSequences"]
         for tactic in sequence["tactics"]
     )

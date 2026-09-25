@@ -191,13 +191,16 @@ class GoalState(TypedDict):
 
 
 class TacticSequenceEntry(TypedDict):
+    """One execution; IDs belong to this check and stage links name its owner."""
+
+    executionId: int
+    ownerId: NotRequired[int | None]
+    stageIndex: NotRequired[int | None]
     name: NotRequired[str | None]
     pos: Pos
     endPos: Pos
-    goalsBefore: list[str]
-    goalsAfter: list[str]
-    goalStatesBefore: NotRequired[list[GoalState]]
-    goalStatesAfter: NotRequired[list[GoalState]]
+    goalStatesBefore: list[GoalState]
+    goalStatesAfter: list[GoalState]
     tactic: str
     mayFail: bool
 

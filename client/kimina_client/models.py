@@ -172,12 +172,32 @@ class Tactic(TypedDict):
     usedConstants: NotRequired[list[str]]
 
 
+class GoalLocal(TypedDict):
+    """One local declaration; its Lean ID is independent of its printed name."""
+
+    id: str
+    name: str
+    type: str
+    value: NotRequired[str | None]
+
+
+class GoalState(TypedDict):
+    """Goal fields rendered in their saved context; IDs are local to an elaboration."""
+
+    id: str
+    name: str
+    target: str
+    locals: list[GoalLocal]
+
+
 class TacticSequenceEntry(TypedDict):
     name: NotRequired[str | None]
     pos: Pos
     endPos: Pos
     goalsBefore: list[str]
     goalsAfter: list[str]
+    goalStatesBefore: NotRequired[list[GoalState]]
+    goalStatesAfter: NotRequired[list[GoalState]]
     tactic: str
     mayFail: bool
 

@@ -158,6 +158,30 @@ Notes:
 - Avoid bare `Lean` as a module; use concrete modules like `Lean.Elab.Frontend`, `Init`, `Std`, or any `Mathlib.*`.
 - The raw-code endpoint creates a temporary module and uses the local `mathlib4` checkout for imports.
 
+### Structured tactic goals
+
+With `tactic_sequences: true`, each tactic entry includes `goalStatesBefore`
+and `goalStatesAfter` alongside the existing `goalsBefore` and `goalsAfter` text.
+Each goal has `id`, `name` (case label), `target`, and `locals`. Each local has
+`id`, `name`, `type`, and an optional `value` for a local definition. Names and
+expressions are pretty-printed separately in the corresponding saved Lean context;
+clients do not need to split goal text at colons or parse grouped declarations.
+Local definition values are exported even when `pp.showLetValues` hides them.
+Visibility of auxiliary and implementation-detail locals follows Lean's options.
+
+IDs identify Lean metavariables and free variables within one elaboration, not
+across requests. A surviving ID supports matching through goal reordering. A tactic
+can also replace goals or reintroduce locals with new IDs, so different IDs alone
+do not establish a before/after pairing. Expression fields are rendered Lean text,
+not a serialized expression tree or a test of mathematical equivalence.
+
+Rebuild the [Kimina REPL `lean-v4.33` branch](https://github.com/VSumanth99/repl/tree/lean-v4.33)
+and restart the server to enable these fields. For a fresh setup, set
+`REPL_BRANCH=lean-v4.33`. No full infotree export is needed. Requests without
+`tactic_sequences` are unchanged. Older REPLs may omit the structured fields.
+Keeping the legacy text alongside structured data increases response size; clients
+can use just the structured fields for transition summaries.
+
 ## Client
 
 From [PyPI](https://test.pypi.org/project/kimina-ast-client/):
